@@ -19,14 +19,11 @@ const PINECONE_NAME_SPACE = "pdf-test";
 
 const ingestManualData = async (data, type) => {
   try {
-    const directoryLoader = new DirectoryLoader(
-      "/Users/rafaelribeiro/Documents/fugro_api/docs",
-      {
-        ".pdf": (path) => new PDFLoader(path),
-        ".csv": (path) => new CSVLoader(path),
-        ".docx": (path) => new DocxLoader(path),
-      }
-    );
+    const directoryLoader = new DirectoryLoader("docs", {
+      ".pdf": (path) => new PDFLoader(path),
+      ".csv": (path) => new CSVLoader(path),
+      ".docx": (path) => new DocxLoader(path),
+    });
 
     // const loader = new PDFLoader(filePath);
     let docs = await directoryLoader.load();

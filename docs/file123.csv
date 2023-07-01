@@ -1,16 +1,3 @@
 Date,Start Time,End Time,Duration,Category,Sub-Category,Unnamed: 6,Description,Unnamed: 8,Severity,Probability
 2/5/2023,13:30,9:15,0.75 hours,Equipment,Heavy Seas,,Operations suspended due to thunderstorm,,Low,Low
 2/9/2023,13:30,15:30,0.75 hours,Equipment,Electrical Failure,,ROV system shutdown due to electrical failure,,High,Low
-2/13/2023,8:15,11:30,1.5 hours,Weather,High Winds,,Operations suspended due to heavy rain,,Low,Medium
-2/2/2023,9:45,12:30,0.75 hours,Equipment,Electrical Failure,,Crane malfunction due to mechanical failure,,High,Low
-2/15/2023,8:15,10:30,0.75 hours,Equipment,ROV Issue,,ROV system shutdown due to electrical failure,,Medium,Low
-2/8/2023,8:30,12:00,1.25 hours,Operations,Personnel Issue,,Crane malfunction due to mechanical failure,,Medium,Low
-2/11/2023,8:30,8:45,1.5 hours,Weather,Personnel Issue,,Operations suspended due to high winds,,Low,Low
-2/5/2023,14:15,16:15,2 hours,Weather,ROV Issue,,Operations suspended due to poor visibility,,Low,Low
-2/10/2023,14:15,9:45,0.75 hours,Operations,Electrical Failure,,ROV system shutdown due to electrical failure,,Low,Low
-2/13/2023,13:30,9:45,1.5 hours,Weather,Personnel Issue,,Operations suspended due to poor visibility,,Low,Medium
-2/12/2023,10:45,16:15,1.5 hours,Equipment,Thunderstorm,,Crane malfunction due to mechanical failure,,Medium,High
-2/2/2023,8:15,16:30,1.25 hours,Equipment,Fog,,Delay in operations due to ROV calibration issue,,Medium,Low
-2/1/2023,9:30,16:15,2 hours,Weather,Electrical Failure,,Operations suspended due to thunderstorm,,Low,Medium
-2/4/2023,10:30,9:45,1.5 hours,Weather,High Winds,,Crane malfunction due to mechanical failure,,Medium,High
-2/11/2023,8:30,12:45,0.75 hours,Weather,Personnel Issue,,Delay in operations due to personnel issue,,Low,Low
