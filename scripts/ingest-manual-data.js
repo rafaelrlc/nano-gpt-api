@@ -25,7 +25,6 @@ const ingestManualData = async (data, type) => {
       ".docx": (path) => new DocxLoader(path),
     });
 
-    // const loader = new PDFLoader(filePath);
     let docs = await directoryLoader.load();
 
     // IF PDF
@@ -39,7 +38,7 @@ const ingestManualData = async (data, type) => {
     //console.log("split docs", docs);
 
     console.log("criando vector store...");
-    /*create and store the embeddings in the vectorStore*/
+
     const embeddings = new OpenAIEmbeddings();
 
     const index = (await pinecone).Index(PINECONE_INDEX_NAME);

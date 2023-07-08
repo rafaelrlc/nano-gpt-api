@@ -6,8 +6,9 @@ const {
   injestManualData,
   getConversation,
   newConversation,
-  getAllConversations,
+  getConversationsIds,
   deleteConversation,
+  deleteAllConversation,
 } = require("../../controllers/chatControllers");
 
 router.get("/ingestmanual", injestManualData);
@@ -15,7 +16,8 @@ router.get("/ingestmanual", injestManualData);
 router.post("/question/:conversationId", askQuestion);
 router.get("/getConversation/:conversationId", getConversation);
 router.post("/newConversation", newConversation);
-router.get("getAllConversation", getAllConversations);
-router.delete("deleteConversation/:conversationId", deleteConversation);
+router.get("/getConversationsIds", getConversationsIds);
+router.delete("/deleteConversation/:conversationId", deleteConversation);
+router.delete("/deleteAllConversation", deleteAllConversation);
 
 module.exports = router;

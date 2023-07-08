@@ -7,23 +7,31 @@ const { ingestManualData } = require("../scripts/ingest-manual-data");
 const { makeChain } = require("../utils/makechain");
 const { pinecone } = require("../utils/pinecone-client");
 
-const { getConversationById } = require("../utils/getConversationById");
 const previousConversations = require("../models/previousConversations");
 
 const getConversation = async (req, res) => {
-  const { conversationId } = req.params;
-  const conversation = await getConversationById(conversationId);
-  const history = conversation.history;
-  res.status(200).json({ history });
+  try {
+    const { conversationId } = req.params;
+    const conversation = await previousConversations.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    const { history } = conversation;
+    res.status(200).json({ history });
+  } catch (error) {
+    console.error("Error fetching conversation:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
-const getAllConversations = async () => {
+const getConversationsIds = async (req, res) => {
   try {
-    const conversations = await previousConversations.find();
-    res.status(200).json({ conversations });
+    const ids = await previousConversations.find({}, "id");
+    res.status(200).json(ids);
   } catch (error) {
-    console.log("error", error);
-    throw new Error("Failed to retrieve conversations");
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -42,13 +50,24 @@ const newConversation = async (req, res) => {
   }
 };
 
-const deleteConversation = async () => {
-  const { conversationId } = req.params;
+const deleteConversation = async (req, res) => {
   try {
+    const { conversationId } = req.params;
     await previousConversations.findByIdAndDelete(conversationId);
+    res.sendStatus(200);
   } catch (error) {
     console.log("error", error);
-    throw new Error("Failed to delete conversation");
+    res.status(500).json({ error: "Failed to delete conversation" });
+  }
+};
+
+const deleteAllConversation = async (req, res) => {
+  try {
+    await previousConversations.deleteMany({});
+    res.status(200).json({ message: "All conversations deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting conversations:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -57,21 +76,25 @@ const askQuestion = async (req, res) => {
     throw new Error("Missing Pinecone index name in .env file");
   }
 
-  const PINECONE_INDEX_NAME = "testembedding";
+  const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME ?? "";
 
   const PINECONE_NAME_SPACE = "pdf-test"; //fugroapi
 
-  const { question } = req.body; // vai puxar o history do mongo
-
-  const { conversationId } = req.params;
-
-  if (!question) {
-    return res.status(400).json({ message: "question missing" });
-  }
-  const sanitizedQuestion = question.trim().replaceAll("\n", " ");
+  //
 
   try {
-    const conversation = await getConversationById(conversationId);
+    const { question, temperature, token } = req.body;
+    const { conversationId } = req.params;
+
+    if (!question) {
+      return res.status(400).json({ message: "question missing" });
+    }
+    if (!token) {
+      return res.status(400).json({ message: "token missing" });
+    }
+
+    const sanitizedQuestion = question.trim().replaceAll("\n", " ");
+    const conversation = await previousConversations.findById(conversationId);
     const history = conversation ? conversation.history : [];
 
     const index = (await pinecone).Index(PINECONE_INDEX_NAME);
@@ -85,7 +108,7 @@ const askQuestion = async (req, res) => {
       }
     );
 
-    const chain = makeChain(vectorStore);
+    const chain = makeChain(vectorStore, temperature, token);
 
     const response = await chain.call({
       question: sanitizedQuestion,
@@ -97,7 +120,6 @@ const askQuestion = async (req, res) => {
       conversation.history.push([question, response.text]);
       await conversation.save();
     }
-
     res.status(200).json({ question: question, response: response.text });
   } catch (error) {
     console.log("error", error);
@@ -110,36 +132,37 @@ const injestManualData = async (req, res) => {
   return res.sendStatus(200);
 };
 
-// const insertNewData = (req, res) => {
-//   const fileBuffer = req.file.buffer;
+const insertNewData = (req, res) => {
+  const fileBuffer = req.file.buffer;
 
-//   const fileType = require("file-type");
+  const fileType = require("file-type");
 
-//   const type = fileType(fileBuffer);
+  const type = fileType(fileBuffer);
 
-//   if (!type) {
-//     return res.status(400).send("Unknown file type");
-//   }
+  if (!type) {
+    return res.status(400).send("Unknown file type");
+  }
 
-//   console.log(`Tipo de dado: ${type.ext}`);
+  console.log(`Tipo de dado: ${type.ext}`);
 
-//   switch (type.ext) {
-//     case "csv":
-//       break;
-//     case "pdf":
-//       break;
-//     case "1x":
-//       break;
-//     default:
-//       return res.status(400).send("Unsupported file type");
-//   }
-// };
+  switch (type.ext) {
+    case "csv":
+      break;
+    case "pdf":
+      break;
+    case "1x":
+      break;
+    default:
+      return res.status(400).send("Unsupported file type");
+  }
+};
 
 module.exports = {
   askQuestion,
   injestManualData,
   getConversation,
-  getAllConversations,
+  getConversationsIds,
   newConversation,
   deleteConversation,
+  deleteAllConversation,
 };

@@ -15,10 +15,12 @@ const QA_PROMPT = `You are an AI assistant made to provide helpful advice about 
 Question: {question}
 Helpful answer in markdown:`;
 
-const makeChain = (vectorstore) => {
+const makeChain = (vectorstore, temp, token) => {
+  console.log("debugg", temp, token);
   const model = new OpenAI({
     temperature: 0,
     modelName: "gpt-3.5-turbo",
+    maxTokens: token,
   });
 
   const chain = ConversationalRetrievalQAChain.fromLLM(

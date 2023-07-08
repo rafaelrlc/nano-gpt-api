@@ -9,8 +9,6 @@ const { PDFLoader } = require("langchain/document_loaders/fs/pdf");
 
 //
 
-const { DirectoryLoader } = require("langchain/document_loaders/fs/directory");
-
 if (!process.env.PINECONE_INDEX_NAME) {
   throw new Error("Missing Pinecone index name in .env file");
 }
