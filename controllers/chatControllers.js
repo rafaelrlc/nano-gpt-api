@@ -10,16 +10,15 @@ const { pinecone } = require("../utils/pinecone-client");
 const previousConversations = require("../models/previousConversations");
 
 const getConversation = async (req, res) => {
+  const { conversationId } = req.params;
   try {
-    const { conversationId } = req.params;
     const conversation = await previousConversations.findById(conversationId);
-
     if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found" });
+      res.status(404).json({ error: "Conversation not found" });
+    } else {
+      const history = conversation.history;
+      res.status(200).json({ history });
     }
-
-    const { history } = conversation;
-    res.status(200).json({ history });
   } catch (error) {
     console.error("Error fetching conversation:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -50,14 +49,13 @@ const newConversation = async (req, res) => {
   }
 };
 
-const deleteConversation = async (req, res) => {
+const deleteConversation = async () => {
+  const { conversationId } = req.params;
   try {
-    const { conversationId } = req.params;
     await previousConversations.findByIdAndDelete(conversationId);
-    res.sendStatus(200);
   } catch (error) {
     console.log("error", error);
-    res.status(500).json({ error: "Failed to delete conversation" });
+    throw new Error("Failed to delete conversation");
   }
 };
 
@@ -80,19 +78,18 @@ const askQuestion = async (req, res) => {
 
   const PINECONE_NAME_SPACE = "pdf-test"; //fugroapi
 
-  //
+  const { question, temperature, token } = req.body;
+
+  const { conversationId } = req.params;
+
+  if (!question) {
+    return res.status(400).json({ message: "question missing" });
+  }
+  if (!token) {
+    return res.status(400).json({ message: "token missing" });
+  }
 
   try {
-    const { question, temperature, token } = req.body;
-    const { conversationId } = req.params;
-
-    if (!question) {
-      return res.status(400).json({ message: "question missing" });
-    }
-    if (!token) {
-      return res.status(400).json({ message: "token missing" });
-    }
-
     const sanitizedQuestion = question.trim().replaceAll("\n", " ");
     const conversation = await previousConversations.findById(conversationId);
     const history = conversation ? conversation.history : [];
@@ -120,6 +117,7 @@ const askQuestion = async (req, res) => {
       conversation.history.push([question, response.text]);
       await conversation.save();
     }
+
     res.status(200).json({ question: question, response: response.text });
   } catch (error) {
     console.log("error", error);
@@ -132,30 +130,30 @@ const injestManualData = async (req, res) => {
   return res.sendStatus(200);
 };
 
-const insertNewData = (req, res) => {
-  const fileBuffer = req.file.buffer;
+// const insertNewData = (req, res) => {
+//   const fileBuffer = req.file.buffer;
 
-  const fileType = require("file-type");
+//   const fileType = require("file-type");
 
-  const type = fileType(fileBuffer);
+//   const type = fileType(fileBuffer);
 
-  if (!type) {
-    return res.status(400).send("Unknown file type");
-  }
+//   if (!type) {
+//     return res.status(400).send("Unknown file type");
+//   }
 
-  console.log(`Tipo de dado: ${type.ext}`);
+//   console.log(`Tipo de dado: ${type.ext}`);
 
-  switch (type.ext) {
-    case "csv":
-      break;
-    case "pdf":
-      break;
-    case "1x":
-      break;
-    default:
-      return res.status(400).send("Unsupported file type");
-  }
-};
+//   switch (type.ext) {
+//     case "csv":
+//       break;
+//     case "pdf":
+//       break;
+//     case "1x":
+//       break;
+//     default:
+//       return res.status(400).send("Unsupported file type");
+//   }
+// };
 
 module.exports = {
   askQuestion,
