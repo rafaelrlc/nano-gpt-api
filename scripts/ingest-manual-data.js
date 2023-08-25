@@ -34,7 +34,7 @@ const ingestManualData = async (data, type) => {
     //   chunkOverlap: 200,
     // });
 
-    //const docs = await textSplitter.splitDocuments(rawDocs);
+    //docs = await textSplitter.splitDocuments(rawDocs);
     //console.log("split docs", docs);
 
     console.log("criando vector store...");
@@ -42,6 +42,7 @@ const ingestManualData = async (data, type) => {
     const embeddings = new OpenAIEmbeddings();
 
     const index = (await pinecone).Index(PINECONE_INDEX_NAME);
+
     //embed os documentos
     await PineconeStore.fromDocuments(docs, embeddings, {
       pineconeIndex: index,

@@ -13,6 +13,7 @@ app.use(cors());
 
 // Routes
 
-app.use("/controller", require("./routes/api/questionHandler"));
+app.use("/question", require("./routes/api/questionHandler"));
+app.use("/file", require("./routes/api/fileHandler"));
 
 app.listen(3004, () => console.log(`Server running on port ${3004}`));

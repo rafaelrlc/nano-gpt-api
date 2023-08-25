@@ -3,15 +3,12 @@ const router = express.Router();
 
 const {
   askQuestion,
-  injestManualData,
   getConversation,
   newConversation,
   getConversationsIds,
   deleteConversation,
   deleteAllConversation,
 } = require("../../controllers/chatControllers");
-
-router.get("/ingestmanual", injestManualData);
 
 router.post("/question/:conversationId", askQuestion);
 router.get("/getConversation/:conversationId", getConversation);

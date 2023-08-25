@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const { OpenAIEmbeddings } = require("langchain/embeddings/openai");
 const { PineconeStore } = require("langchain/vectorstores/pinecone");
-const { ingestManualData } = require("../scripts/ingest-manual-data");
 
 const { makeChain } = require("../utils/makechain");
 const { pinecone } = require("../utils/pinecone-client");
@@ -125,39 +124,8 @@ const askQuestion = async (req, res) => {
   }
 };
 
-const injestManualData = async (req, res) => {
-  await ingestManualData();
-  return res.sendStatus(200);
-};
-
-// const insertNewData = (req, res) => {
-//   const fileBuffer = req.file.buffer;
-
-//   const fileType = require("file-type");
-
-//   const type = fileType(fileBuffer);
-
-//   if (!type) {
-//     return res.status(400).send("Unknown file type");
-//   }
-
-//   console.log(`Tipo de dado: ${type.ext}`);
-
-//   switch (type.ext) {
-//     case "csv":
-//       break;
-//     case "pdf":
-//       break;
-//     case "1x":
-//       break;
-//     default:
-//       return res.status(400).send("Unsupported file type");
-//   }
-// };
-
 module.exports = {
   askQuestion,
-  injestManualData,
   getConversation,
   getConversationsIds,
   newConversation,
