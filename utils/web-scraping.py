@@ -1,4 +1,5 @@
 async def async_load_playwright(url) -> str:
+    
     from bs4 import BeautifulSoup
     from playwright.async_api import async_playwright
 
@@ -25,4 +26,4 @@ async def async_load_playwright(url) -> str:
         await browser.close()
     return results
 
-output = await async_load_playwright("https://appsumo.com")
+#output = await async_load_playwright("https://appsumo.com")

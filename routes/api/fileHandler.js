@@ -3,11 +3,13 @@ const router = express.Router();
 
 const {
   ingestManual,
-  ingestData,
+  ingestFile,
   ingestWebScraping,
 } = require("../../controllers/fileControllers");
 
 router.post("/ingestmanual", ingestManual);
-router.post("/ingestData", ingestData);
-router.post("/loadWebsite", ingestWebScraping);
+router.post("/ingestFile", ingestFile);
+
+//router.post("/loadWebsite", webscrapingHandler);
+
 module.exports = router;

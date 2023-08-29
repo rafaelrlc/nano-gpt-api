@@ -1,63 +1,78 @@
-const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 const { OpenAIEmbeddings } = require("langchain/embeddings/openai");
 const { PineconeStore } = require("langchain/vectorstores/pinecone");
 const { pinecone } = require("../utils/pinecone-client");
 
-const { CSVLoader } = require("langchain/document_loaders/fs/csv");
+const { TypeORMVectorStore } = require("langchain/vectorstores/typeorm");
+const { createConnection } = require("typeorm");
+
+// LOADERS
+
 const { DocxLoader } = require("langchain/document_loaders/fs/docx");
 const { PDFLoader } = require("langchain/document_loaders/fs/pdf");
+const { DirectoryLoader } = require("langchain/document_loaders/fs/directory");
+const { JSONLoader } = require("langchain/document_loaders/fs/json");
+const { TextLoader } = require("langchain/document_loaders/fs/text");
+const { CSVLoader } = require("langchain/document_loaders/fs/csv");
+
+const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 
 if (!process.env.PINECONE_INDEX_NAME) {
   throw new Error("Missing Pinecone index name in .env file");
 }
+// } else if (!process.env.PINECONE_NAME_SPACE) {
+//   throw new Error("Missing Pinecone name space in .env file");
+// }
 
 const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME ?? "";
+const PINECONE_NAME_SPACE = process.env.PINECONE_NAME_SPACE ?? "";
 
-const PINECONE_NAME_SPACE = "pdf-test";
+const ingestData = async () => {
+  const loader = new DirectoryLoader("docs", {
+    ".json": (path) => new JSONLoader(path),
+    ".txt": (path) => new TextLoader(path),
+    ".csv": (path) => new CSVLoader(path),
+    ".pdf": (path) => new PDFLoader(path),
+    ".docx": (path) => new DocxLoader(path),
+  });
 
-const ingestData = async (data, type) => {
-  let loader = new CSVLoader(path);
+  let rawDocs = await loader.load();
+  console.log(rawDocs);
 
-  try {
-    if (type == "csv") {
-      loader = new CSVLoader(path);
-    } else if (type == "pdf") {
-      loader = new PDFLoader(path);
-    } else if (type == "docx") {
-      loader = new DocxLoader(path);
+  const vectorStore = await TypeORMVectorStore.fromExistingIndex(
+    new OpenAIEmbeddings(),
+    {
+      connection: await createConnection({
+        type: "postgres",
+        host: "localhost",
+        port: 5432,
+        username: "myuser",
+        password: "ChangeMe",
+        database: "api",
+        entities: [], // Add your entity classes here
+      }),
+      tableName: "Document", // Replace with your table name
+      vectorColumnName: "vector", // Replace with your vector column name
     }
+  );
 
-    const rawDocs = await loader.load();
-    let docs;
+  await vectorStore.addDocuments(rawDocs);
 
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-      chunkOverlap: 200,
-    });
+  // try {
+  //   console.log("criando vector store...");
+  //   const embeddings = new OpenAIEmbeddings();
 
-    if (type == "pdf") {
-      console.log("spliting docs", docs);
-      docs = await textSplitter.splitDocuments(rawDocs);
-    } else {
-      docs = rawDocs;
-    }
+  //   const index = (await pinecone).Index(PINECONE_INDEX_NAME);
 
-    console.log("criando vector store...");
-
-    const embeddings = new OpenAIEmbeddings();
-
-    const index = (await pinecone).Index(PINECONE_INDEX_NAME);
-
-    //embed os documentos
-    await PineconeStore.fromDocuments(docs, embeddings, {
-      pineconeIndex: index,
-      namespace: PINECONE_NAME_SPACE,
-      textKey: "text",
-    });
-  } catch (error) {
-    console.log("error", error);
-    throw new Error("Erro ao inserir dados");
-  }
+  //   //embedding
+  //   await PineconeStore.fromDocuments(rawDocs, embeddings, {
+  //     pineconeIndex: index,
+  //     namespace: PINECONE_NAME_SPACE,
+  //     textKey: "text",
+  //   });
+  // } catch (error) {
+  //   console.log("error", error);
+  //   throw new Error("Erro ao fazer embedding dos dados");
+  // }
 };
 
 module.exports = { ingestData };
