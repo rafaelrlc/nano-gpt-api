@@ -1,30 +1,13 @@
-const { OpenAIEmbeddings } = require("langchain/embeddings/openai");
-const { PineconeStore } = require("langchain/vectorstores/pinecone");
-const { pinecone } = require("../utils/pinecone-client");
-
-const { TypeORMVectorStore } = require("langchain/vectorstores/typeorm");
-const { createConnection } = require("typeorm");
-
-// LOADERS
-
 const { DocxLoader } = require("langchain/document_loaders/fs/docx");
 const { PDFLoader } = require("langchain/document_loaders/fs/pdf");
 const { DirectoryLoader } = require("langchain/document_loaders/fs/directory");
 const { JSONLoader } = require("langchain/document_loaders/fs/json");
 const { TextLoader } = require("langchain/document_loaders/fs/text");
 const { CSVLoader } = require("langchain/document_loaders/fs/csv");
-
 const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
+const { deleteAllFilesInDir } = require("../utils/dirFilesMethods");
 
-if (!process.env.PINECONE_INDEX_NAME) {
-  throw new Error("Missing Pinecone index name in .env file");
-}
-// } else if (!process.env.PINECONE_NAME_SPACE) {
-//   throw new Error("Missing Pinecone name space in .env file");
-// }
-
-const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME ?? "";
-const PINECONE_NAME_SPACE = process.env.PINECONE_NAME_SPACE ?? "";
+const { initPostgres } = require("../init/postgres-client");
 
 const ingestData = async () => {
   const loader = new DirectoryLoader("docs", {
@@ -36,43 +19,26 @@ const ingestData = async () => {
   });
 
   let rawDocs = await loader.load();
-  console.log(rawDocs);
 
-  const vectorStore = await TypeORMVectorStore.fromExistingIndex(
-    new OpenAIEmbeddings(),
-    {
-      connection: await createConnection({
-        type: "postgres",
-        host: "localhost",
-        port: 5432,
-        username: "myuser",
-        password: "ChangeMe",
-        database: "api",
-        entities: [], // Add your entity classes here
-      }),
-      tableName: "Document", // Replace with your table name
-      vectorColumnName: "vector", // Replace with your vector column name
-    }
-  );
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
 
-  await vectorStore.addDocuments(rawDocs);
+  rawDocs = await textSplitter.splitDocuments(rawDocs);
 
-  // try {
-  //   console.log("criando vector store...");
-  //   const embeddings = new OpenAIEmbeddings();
+  try {
+    const vectorStore = await initPostgres();
+    await vectorStore.ensureTableInDatabase();
+    await vectorStore.addDocuments(rawDocs);
 
-  //   const index = (await pinecone).Index(PINECONE_INDEX_NAME);
-
-  //   //embedding
-  //   await PineconeStore.fromDocuments(rawDocs, embeddings, {
-  //     pineconeIndex: index,
-  //     namespace: PINECONE_NAME_SPACE,
-  //     textKey: "text",
-  //   });
-  // } catch (error) {
-  //   console.log("error", error);
-  //   throw new Error("Erro ao fazer embedding dos dados");
-  // }
+    deleteAllFilesInDir("docs").then(() => {
+      console.log("dados removidos apos embedding");
+    });
+  } catch (error) {
+    console.log("deu erro");
+    console.log(error);
+  }
 };
 
 module.exports = { ingestData };

@@ -7,10 +7,12 @@ const MyTableSchema = new mongoose.Schema({
     required: true,
     auto: true,
   },
-  history: {
-    type: [[{ type: String }, { type: String }]],
-    default: [],
-  },
+  history: [
+    {
+      question: String,
+      response: String,
+    },
+  ],
 });
 
 module.exports = mongoose.model("PreviousConversations", MyTableSchema);

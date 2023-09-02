@@ -1,23 +1,68 @@
-require("dotenv").config();
-
-const { OpenAIEmbeddings } = require("langchain/embeddings/openai");
-const { PineconeStore } = require("langchain/vectorstores/pinecone");
-
-const { makeChain } = require("../utils/makechain");
-const { pinecone } = require("../utils/pinecone-client");
+const mongoose = require("mongoose");
+const { initPostgres } = require("../init/postgres-client");
+const { makeChain } = require("../scripts/makechain");
 
 const previousConversations = require("../models/previousConversations");
 
+const fetchQuery = async (req, res) => {
+  const { question, temperature, token } = req.body;
+  const { conversationId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+    return res.status(400).json({ message: "Invalid conversationId" });
+  }
+
+  try {
+    const sanitizedQuestion = question.trim().replaceAll("\n", " ");
+    const conversation = await previousConversations.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    const formattedHistory = conversation.history.map((item) => [
+      item.question,
+      item.response,
+    ]);
+
+    const vectorStore = await initPostgres();
+
+    const chain = makeChain(vectorStore, token, temperature);
+
+    const response = await chain.call({
+      question: sanitizedQuestion,
+      chat_history: formattedHistory,
+    });
+
+    // update conversation history
+    if (conversation) {
+      conversation.history.push({
+        question: question,
+        response: response.text,
+      });
+      await conversation.save();
+    }
+    res.status(200).json({ question: question, response: response.text });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ error: error.message || "Something went wrong" });
+  }
+};
+
 const getConversation = async (req, res) => {
   const { conversationId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+    return res.status(400).json({ message: "Invalid conversationId" });
+  }
+
   try {
     const conversation = await previousConversations.findById(conversationId);
     if (!conversation) {
       res.status(404).json({ error: "Conversation not found" });
-    } else {
-      const history = conversation.history;
-      res.status(200).json({ history });
     }
+    const history = conversation.history;
+    res.status(200).json({ history });
   } catch (error) {
     console.error("Error fetching conversation:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -48,15 +93,15 @@ const newConversation = async (req, res) => {
   }
 };
 
-const deleteConversation = async () => {
-  const { conversationId } = req.params;
-  try {
-    await previousConversations.findByIdAndDelete(conversationId);
-  } catch (error) {
-    console.log("error", error);
-    throw new Error("Failed to delete conversation");
-  }
-};
+// const deleteConversation = async () => {
+//   const { conversationId } = req.params;
+//   try {
+//     await previousConversations.findByIdAndDelete(conversationId);
+//   } catch (error) {
+//     console.log("error", error);
+//     throw new Error("Failed to delete conversation");
+//   }
+// };
 
 const deleteAllConversation = async (req, res) => {
   try {
@@ -68,67 +113,11 @@ const deleteAllConversation = async (req, res) => {
   }
 };
 
-const askQuestion = async (req, res) => {
-  if (!process.env.PINECONE_INDEX_NAME) {
-    throw new Error("Missing Pinecone index name in .env file");
-  }
-
-  const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME ?? "";
-
-  const PINECONE_NAME_SPACE = "pdf-test"; //fugroapi
-
-  const { question, temperature, token } = req.body;
-
-  const { conversationId } = req.params;
-
-  if (!question) {
-    return res.status(400).json({ message: "question missing" });
-  }
-  if (!token) {
-    return res.status(400).json({ message: "token missing" });
-  }
-
-  try {
-    const sanitizedQuestion = question.trim().replaceAll("\n", " ");
-    const conversation = await previousConversations.findById(conversationId);
-    const history = conversation ? conversation.history : [];
-
-    const index = (await pinecone).Index(PINECONE_INDEX_NAME);
-
-    const vectorStore = await PineconeStore.fromExistingIndex(
-      new OpenAIEmbeddings({}),
-      {
-        pineconeIndex: index,
-        textKey: "text",
-        namespace: PINECONE_NAME_SPACE,
-      }
-    );
-
-    const chain = makeChain(vectorStore, temperature, token);
-
-    const response = await chain.call({
-      question: sanitizedQuestion,
-      chat_history: history || [],
-    });
-
-    // update conversation history
-    if (conversation) {
-      conversation.history.push([question, response.text]);
-      await conversation.save();
-    }
-
-    res.status(200).json({ question: question, response: response.text });
-  } catch (error) {
-    console.log("error", error);
-    res.status(500).json({ error: error.message || "Something went wrong" });
-  }
-};
-
 module.exports = {
-  askQuestion,
+  fetchQuery,
   getConversation,
   getConversationsIds,
   newConversation,
-  deleteConversation,
+  // deleteConversation,
   deleteAllConversation,
 };
