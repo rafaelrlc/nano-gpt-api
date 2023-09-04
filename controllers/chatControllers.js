@@ -34,18 +34,27 @@ const fetchQuery = async (req, res) => {
       chat_history: formattedHistory,
     });
 
+    const response2 = await vectorStore.similaritySearch(sanitizedQuestion, 1);
+
     // update conversation history
     if (conversation) {
       conversation.history.push({
         question: question,
         response: response.text,
       });
+      conversation.chatName = question.slice(0, 20);
       await conversation.save();
     }
-    res.status(200).json({ question: question, response: response.text });
+    return res.status(200).json({
+      question: question,
+      response: response.text,
+      response2: response2,
+    });
   } catch (error) {
     console.log("error", error);
-    res.status(500).json({ error: error.message || "Something went wrong" });
+    return res
+      .status(500)
+      .json({ error: error.message || "Something went wrong" });
   }
 };
 
@@ -59,22 +68,23 @@ const getConversation = async (req, res) => {
   try {
     const conversation = await previousConversations.findById(conversationId);
     if (!conversation) {
-      res.status(404).json({ error: "Conversation not found" });
+      console.log("131232112");
+      return res.status(404).json({ error: "Conversation not found" });
     }
     const history = conversation.history;
-    res.status(200).json({ history });
+    return res.status(200).json({ history });
   } catch (error) {
     console.error("Error fetching conversation:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
 const getConversationsIds = async (req, res) => {
   try {
-    const ids = await previousConversations.find({}, "id");
-    res.status(200).json(ids);
+    const conversations = await previousConversations.find({}, "id chatName");
+    return res.status(200).json(conversations);
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -83,13 +93,15 @@ const newConversation = async (req, res) => {
     const newConversation = new previousConversations();
     await newConversation.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "New conversation created successfully",
       conversationId: newConversation._id,
     });
   } catch (error) {
     console.log("error", error);
-    res.status(500).json({ error: error.message || "Something went wrong" });
+    return res
+      .status(500)
+      .json({ error: error.message || "Something went wrong" });
   }
 };
 
@@ -106,10 +118,12 @@ const newConversation = async (req, res) => {
 const deleteAllConversation = async (req, res) => {
   try {
     await previousConversations.deleteMany({});
-    res.status(200).json({ message: "All conversations deleted successfully" });
+    return res
+      .status(200)
+      .json({ message: "All conversations deleted successfully" });
   } catch (error) {
     console.error("Error deleting conversations:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 

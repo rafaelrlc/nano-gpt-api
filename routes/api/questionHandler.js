@@ -15,8 +15,8 @@ const {
 
 router.post("/:conversationId", validator(queryQuestionValidator), fetchQuery);
 router.get("/:conversationId", getConversation);
-router.post("/newConversation", newConversation);
-router.get("/getConversationsIds", getConversationsIds);
+router.post("/conversation/new", newConversation);
+router.get("/id/getAll", getConversationsIds);
 // router.delete("/:conversationId", deleteConversation);
 router.delete("/deleteAllConversation", deleteAllConversation);
 

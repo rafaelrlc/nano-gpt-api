@@ -23,7 +23,7 @@ const makeChain = (vectorstore, token, temperature) => {
   const model = new OpenAI({
     temperature: 0.15,
     modelName: "gpt-3.5-turbo",
-    maxTokens: 1000,
+    maxTokens: 2000,
   });
 
   const chain = ConversationalRetrievalQAChain.fromLLM(

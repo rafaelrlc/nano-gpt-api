@@ -7,6 +7,7 @@ const MyTableSchema = new mongoose.Schema({
     required: true,
     auto: true,
   },
+  chatName: String,
   history: [
     {
       question: String,
